@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# AvrStudio Solution File, Format Version 11.00
+Project("{54F91283-7BC4-4236-8FF9-10F437C3AD48}") = "ATM", "ATM\ATM.cproj", "{BC24151A-05FE-4BF5-BE0D-F7920A7FB82A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|AVR = Debug|AVR
+		Release|AVR = Release|AVR
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BC24151A-05FE-4BF5-BE0D-F7920A7FB82A}.Debug|AVR.ActiveCfg = Debug|AVR
+		{BC24151A-05FE-4BF5-BE0D-F7920A7FB82A}.Debug|AVR.Build.0 = Debug|AVR
+		{BC24151A-05FE-4BF5-BE0D-F7920A7FB82A}.Release|AVR.ActiveCfg = Release|AVR
+		{BC24151A-05FE-4BF5-BE0D-F7920A7FB82A}.Release|AVR.Build.0 = Release|AVR
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
