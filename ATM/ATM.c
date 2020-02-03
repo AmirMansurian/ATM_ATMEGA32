@@ -34,7 +34,7 @@ unsigned char key;//key detected from keypad
 unsigned char display [17];
 unsigned char uart_read [15];
 unsigned char password [5];
-//unsigned int i=0, ret;
+unsigned char current_user;
 
 
 void lcd_cmd (unsigned char command);
@@ -50,8 +50,8 @@ unsigned int Authentication (unsigned cahr idno);
 void show_menu ();
 void inventory ();
 void withdraw ();
-void transfer ();
-void change_pass();
+unsigned int transfer ();
+unsigned int change_pass();
 
 
 unsigned char keypad[4][4]={ '1', '2', '3', 'A',
@@ -92,9 +92,6 @@ int main(void)
 
 	return 0;
 }
-
-
-
 
 
 void lcd_cmd (unsigned char command)
@@ -157,6 +154,7 @@ unsigned int user_detection()
 	{
 		if (!strcmp(users[i], uart_read))
 		{
+			current_user=i;
 			strcpy (display, "Hi ");
 			lcd_write_string(display);
 			strcpy(display, name[i]);
@@ -539,4 +537,199 @@ void card_insertion ()
 	_delay_ms(1000);
 	lcd_cmd(0x01);
 	lcd_loc(1, 1);
+}
+
+void inventory ()
+{
+	lcd_cmd(0x01);
+	lcd_loc(1, 1);
+	lcd_write_string(atoi(money[current_user]));
+	_delay_ms(2000);
+}
+
+void withdraw ()
+{
+	lcd_cmd(0x01);
+	lcd_loc(1, 1);
+	strcpy (display, "1- 1$");
+	lcd_write_string(display);
+	lcd_loc(1, 2);
+	strcpy (display, "2- 5$");
+	lcd_write_string(display);
+	_delay_ms (2000);
+	lcd_cmd(0x01);
+	lcd_loc(1, 1);
+	strcpy (display, "3- 10$");
+	lcd_write_string(display);
+	lcd_loc(1, 2);
+	strcpy (display, "4- 100$");
+	lcd_write_string(display);
+
+
+	unsigned char option=1;
+
+	while (option)
+	{
+
+		do
+		{
+			PORTC &= 0x0f;
+			col= (PINC & 0x0f);
+
+		} while (col !=0x0f);
+
+		do
+		{
+			do
+			{
+				_delay_ms(20);
+				col = (PINC & 0x0f);
+
+			} while (col == 0x0f);
+
+			_delay_ms(20);
+			col = (PINC & 0x0f);
+
+		} while (col == 0x0f);
+
+		while (1)
+		{
+			PORTC = 0xef;
+			col = (PINC & 0x0f);
+
+			if (col != 0x0f)
+			{
+				row=0;
+				break;
+			}
+
+			PORTC = 0xdf;
+			col = (PINC & 0x0f);
+
+			if (col !=0x0f)
+			{
+				row=1;
+				break;
+			}
+
+			PORTC = 0xbf;
+			col = (PINC & 0x0f);
+
+			if (col != 0x0f)
+			{
+				row=2;
+				break;
+			}
+
+			PORTC = 0x7f;
+			col = (PINC & 0x0f);
+			if (col != 0x0f)
+			{
+				row=3;
+				break;
+			}
+		}
+
+			if (col == 0x0e)
+				key =keypad[row][0];
+			else if (col == 0x0d)
+				key = keypad[row][1];
+			else if (col == 0x0b)
+				key = keypad[row][2];
+			else
+				key = keypad[row][3];
+
+			option=0;
+
+				if (key == '1')
+				{
+					if (money[current_user]<1)
+					{
+						lcd_cmd(0x01);
+						lcd_loc(1, 1);
+						strcpy (display, "Not enough money");
+						lcd_write_string(display);
+						_delay_ms(2000);
+					}
+					else
+					{
+						money[current_user] -= 1;
+						lcd_cmd(0x01);
+						lcd_loc(1, 1);
+						strcpy (display, "1 dollars !!!");
+						lcd_write_string(display);
+						_delay_ms(2000);
+					}
+				}
+
+				if (key == '2')
+				{
+					if (money[current_user]<5)
+					{
+						lcd_cmd(0x01);
+						lcd_loc(1, 1);
+						strcpy (display, "Not enough money");
+						lcd_write_string(display);
+						_delay_ms(2000);
+					}
+					else
+					{
+						money[current_user] -= 5;
+						lcd_cmd(0x01);
+						lcd_loc(1, 1);
+						strcpy (display, "5 dollars !!!");
+						lcd_write_string(display);
+						_delay_ms(2000);
+					}
+				}
+
+				if (key == '3')
+				{
+					if (money[current_user]<10)
+					{
+						lcd_cmd(0x01);
+						lcd_loc(1, 1);
+						strcpy (display, "Not enough money");
+						lcd_write_string(display);
+						_delay_ms(2000);
+					}
+					else
+					{
+						money[current_user] -= 10;
+						lcd_cmd(0x01);
+						lcd_loc(1, 1);
+						strcpy (display, "10 dollars !!!");
+						lcd_write_string(display);
+						_delay_ms(2000);
+					}
+				}
+
+				if (key == '4')
+				{
+					if (money[current_user]<100)
+					{
+						lcd_cmd(0x01);
+						lcd_loc(1, 1);
+						strcpy (display, "Not enough money");
+						lcd_write_string(display);
+						_delay_ms(2000);
+					}
+					else
+					{
+						money[current_user] -= 100;
+						lcd_cmd(0x01);
+						lcd_loc(1, 1);
+						strcpy (display, "100 dollars !!!");
+						lcd_write_string(display);
+						_delay_ms(2000);
+					}
+				}
+
+				else if (key == 'C')
+					option=0;
+				else
+					option=1;
+
+	}
+
 }
