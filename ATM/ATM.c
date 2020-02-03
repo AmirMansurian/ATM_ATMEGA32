@@ -3,7 +3,7 @@
  *
  * Created: 2/2/2020 12:58:49 AM
  *  Author: Amir
- */ 
+ */
 
 #include <avr/io.h>
 #include <util/delay.h>
@@ -34,7 +34,7 @@ unsigned char key;//key detected from keypad
 unsigned char display [17];
 unsigned char uart_read [15];
 unsigned char password [5];
-unsigned int i=0, ret;
+//unsigned int i=0, ret;
 
 
 void lcd_cmd (unsigned char command);
@@ -43,12 +43,15 @@ void usartinit(unsigned char *str);
 void lcd_data(unsigned char data);
 void lcd_write_string();
 void lcd_loc (unsigned char x, unsigned char y);
-void debouncing ();
 
-
+void card_insertion();
 unsigned int user_detection ();
 unsigned int Authentication (unsigned cahr idno);
 void show_menu ();
+void inventory ();
+void withdraw ();
+void transfer ();
+void change_pass();
 
 
 unsigned char keypad[4][4]={ '1', '2', '3', 'A',
@@ -70,50 +73,24 @@ int main(void)
 	KEY_DDR=0xf0;
 	UART_DDR=0x00;
 	KEY_PORT=0xff;
-	
+
 	init_lcd();
 	_delay_ms(50);
 	usartinit();
-	
+
 	while (1)
 	{
-		lcd_cmd(0x01);
-		strcpy(display, "Insert your card");
-		lcd_write_string(display);
-		
-		while ((UCSRA) & (1<<RXC))
-		{
-			uart_read[i] = UDR;
-			_delay_ms(1);
-			i++;
-			
-			if (i==12)
-			{
-				uart_read[i]=0;
-				break;
-			}
-			
-		}
-		
-		if (!ret=user_detection())
-			continue;
-		
-		show_menu();	
-	
-	
-	
-	
-	
-	}
-	
-	
-	
-	
-	
-	
-	
+		card_insertion();
 
-	return 0;	
+		if (!user_detection())
+			continue;
+
+		show_menu();
+
+	}
+
+
+	return 0;
 }
 
 
@@ -143,7 +120,7 @@ void lcd_data (unsigned char data)
 void lcd_write_string(unsigned char *str)         //LCD string write sub routine
 {
  	unsigned char i = 0;
-	
+
 	while (str[i]!=0)
 	{
 		lcd_data(str[i]);
@@ -160,92 +137,22 @@ void usartinit()                       //USART initialization
  UCSRC|=(1<<URSEL)|(1<<UCSZ0)|(1<<UCSZ1);
 }
 
-void debouncing ()
-{
-	do 
-		{
-			PORTC &= 0x0f;
-			col= (PINC & 0x0f);
-			
-		} while (col !=0x0f);
-			
-		do 
-		{
-			do 
-			{
-				_delay_ms(20);
-				col = (PINC & 0x0f);
-				
-			} while (col == 0x0f);
-			
-			_delay_ms(20);
-			col = (PINC & 0x0f);
-			
-		} while (col == 0x0f);
-		
-		while (1)
-		{
-			PORTC = 0xef;
-			col = (PINC & 0x0f);
-			
-			if (col != 0x0f)
-			{
-				row=0;
-				break;
-			}
-			
-			PORTC = 0xdf;
-			col = (PINC & 0x0f);
-			
-			if (col !=0x0f)
-			{
-				row=1;
-				break;
-			}
-			
-			PORTC = 0xbf;
-			col = (PINC & 0x0f);
-			
-			if (col != 0x0f)
-			{
-				row=2;
-				break;
-			}
-			
-			PORTC = 0x7f;
-			col = (PINC & 0x0f);
-			if (col != 0x0f)
-			{
-				row=3;
-				break;
-			}
-		}
-		
-		
-		if (col == 0x0e)
-			key = keypad[row][2];
-		else if (col == 0x0d)
-			key = keypad[row][1];
-		else if (col == 0x0b)
-			key = keypad[row][0];
-}
-
 void init_lcd ()                     //LCD initialization
 {
 	_delay_ms(50);
     send_a_command(0x01);// sending all clear command
     send_a_command(0x38);// 16*2 line LCD
     send_a_command(0x0E);// screen and cursor ON
-	
+
  return;
 }
 
 unsigned int user_detection()
-{	
+{
 	unsigned char i=0;
-	
+
 	lcd_cmd(0x01);
-	
+
 	while (i<MAX_USER)
 	{
 		if (!strcmp(users[i], uart_read))
@@ -255,108 +162,205 @@ unsigned int user_detection()
 			strcpy(display, name[i]);
 			lcd_write_string(display);
 			_delay_ms(2000);
-			
-			
+
 			lcd_cmd(0x01);
 			strcpy (display, "Enter password:");
 			lcd_write_string(display);
 			lcd_loc(1, 2);
-			
+
 			return Authentication(i);
-			
+
 		}
-					
+
 		i++;
 	}
-	
+
 	strcpy (display, "Invalid card !!!");
 	lcd_write_string(display);
 	_delay_ms(2000);
-			
-	return 0;	
+
+	return 0;
 }
 
 void show_menu()
 {
-	lcd_cmd(0x01);
-	
-	strcpy (display, "1- Inventory");
-	lcd_write_string(display);
-	lcd_loc(1, 2);
-	strcpy (display, "2- Withdraw");
-	lcd_write_string(display);
-	_delay_ms(3000);
-	
-	lcd_cmd(0x01);
-	
-	strcpy (display, "3- Change pass");
-	lcd_write_string(display);
-	lcd_loc(1, 2);
-	strcpy (display, "4- Transfer");
-	lcd_write_string(display);
-	_delay_ms(3000);	
-}
 
-unsigned int Authentication (unsigned char idno)
-{
-	unsigned char j=0, try=0;
-	
-	while (try<3)
+	while (1)
 	{
-		j=0;
-			
-		while (j<4)
+		lcd_cmd(0x01);
+		lcd_loc(1, 1);
+
+		strcpy (display, "1- Inventory");
+		lcd_write_string(display);
+		lcd_loc(1, 2);
+		strcpy (display, "2- Withdraw");
+		lcd_write_string(display);
+		_delay_ms(3000);
+
+		lcd_cmd(0x01);
+		lcd_loc(1, 1);
+
+		strcpy (display, "3- Change pass");
+		lcd_write_string(display);
+		lcd_loc(1, 2);
+		strcpy (display, "4- Transfer");
+		lcd_write_string(display);
+
+		unsigned char option=1;
+
+		while (option)
+		{
+
+			do
 			{
-				do 
+				PORTC &= 0x0f;
+				col= (PINC & 0x0f);
+
+			} while (col !=0x0f);
+
+			do
+			{
+				do
+				{
+					_delay_ms(20);
+					col = (PINC & 0x0f);
+
+				} while (col == 0x0f);
+
+				_delay_ms(20);
+				col = (PINC & 0x0f);
+
+			} while (col == 0x0f);
+
+			while (1)
+			{
+				PORTC = 0xef;
+				col = (PINC & 0x0f);
+
+				if (col != 0x0f)
+				{
+					row=0;
+					break;
+				}
+
+				PORTC = 0xdf;
+				col = (PINC & 0x0f);
+
+				if (col !=0x0f)
+				{
+					row=1;
+					break;
+				}
+
+				PORTC = 0xbf;
+				col = (PINC & 0x0f);
+
+				if (col != 0x0f)
+				{
+					row=2;
+					break;
+				}
+
+				PORTC = 0x7f;
+				col = (PINC & 0x0f);
+				if (col != 0x0f)
+				{
+					row=3;
+					break;
+				}
+			}
+
+				if (col == 0x0e)
+					key =keypad[row][0];
+				else if (col == 0x0d)
+					key = keypad[row][1];
+				else if (col == 0x0b)
+					key = keypad[row][2];
+				else
+					key = keypad[row][3];
+
+				option=0;
+
+					if (key == '1')
+						inventory();
+					else if (key == '2')
+						withdraw();
+					else if (key == '3')
+						change_pass();
+					else if (key == '4')
+						transfer();
+					else if (key == 'C')
+						return 0;
+					else
+						option=1;
+
+		}
+
+
+
+		lcd_cmd(0x01);
+		lcd_loc(1, 1);
+		strcpy (display, "1- Continue");
+		lcd_write_string(display);
+		lcd_loc(1, 2);
+		strcpy (display, "2- Exit");
+		lcd_write_string(display);
+
+		option=1;
+
+		while (option)
+		{
+
+				do
 				{
 					PORTC &= 0x0f;
 					col= (PINC & 0x0f);
-			
+
 				} while (col !=0x0f);
-			
-				do 
+
+				do
 				{
-					do 
+					do
 					{
 						_delay_ms(20);
 						col = (PINC & 0x0f);
-				
+
 					} while (col == 0x0f);
-			
+
 					_delay_ms(20);
 					col = (PINC & 0x0f);
-			
+
 				} while (col == 0x0f);
-		
+
 				while (1)
 				{
 					PORTC = 0xef;
 					col = (PINC & 0x0f);
-			
+
 					if (col != 0x0f)
 					{
 						row=0;
 						break;
 					}
-			
+
 					PORTC = 0xdf;
 					col = (PINC & 0x0f);
-			
+
 					if (col !=0x0f)
 					{
 						row=1;
 						break;
 					}
-			
+
 					PORTC = 0xbf;
 					col = (PINC & 0x0f);
-			
+
 					if (col != 0x0f)
 					{
 						row=2;
 						break;
 					}
-			
+
 					PORTC = 0x7f;
 					col = (PINC & 0x0f);
 					if (col != 0x0f)
@@ -365,40 +369,174 @@ unsigned int Authentication (unsigned char idno)
 						break;
 					}
 				}
-				
+
+					if (col == 0x0e)
+						key =keypad[row][0];
+					else if (col == 0x0d)
+						key = keypad[row][1];
+					else if (col == 0x0b)
+						key = keypad[row][2];
+					else
+						key = keypad[row][3];
+
+						if ( key == '1')
+							option=0;
+						else if (key == 'C')
+							return 0;
+						else if (key == '2')
+						{
+								lcd_cmd(0x01);
+								lcd_loc(1, 1);
+								strcpy (display, "Bye !!!");
+								lcd_write_string(display);
+								_delay_ms(1000);
+								return 0;
+						}
+				}
+
+	}
+
+
+
+
+}
+
+unsigned int Authentication (unsigned char idno)
+{
+	unsigned char j=0, try=0;
+
+	while (try<3)
+	{
+		j=0;
+
+		while (j<4)
+			{
+				do
+				{
+					PORTC &= 0x0f;
+					col= (PINC & 0x0f);
+
+				} while (col !=0x0f);
+
+				do
+				{
+					do
+					{
+						_delay_ms(20);
+						col = (PINC & 0x0f);
+
+					} while (col == 0x0f);
+
+					_delay_ms(20);
+					col = (PINC & 0x0f);
+
+				} while (col == 0x0f);
+
+				while (1)
+				{
+					PORTC = 0xef;
+					col = (PINC & 0x0f);
+
+					if (col != 0x0f)
+					{
+						row=0;
+						break;
+					}
+
+					PORTC = 0xdf;
+					col = (PINC & 0x0f);
+
+					if (col !=0x0f)
+					{
+						row=1;
+						break;
+					}
+
+					PORTC = 0xbf;
+					col = (PINC & 0x0f);
+
+					if (col != 0x0f)
+					{
+						row=2;
+						break;
+					}
+
+					PORTC = 0x7f;
+					col = (PINC & 0x0f);
+					if (col != 0x0f)
+					{
+						row=3;
+						break;
+					}
+				}
+
 					if (col == 0x0e)
 						password[j] =keypad[row][0];
 					else if (col == 0x0d)
 						password[j] = keypad[row][1];
 					else if (col == 0x0b)
 						password[j] = keypad[row][2];
-					else 
-						password[j] = keypad[row][3]; 
-					
-				lcd_data('*');				
+					else
+					{
+						password[j] = keypad[row][3];
+						if (row==2)
+							return 0;
+					}
+
+				lcd_data('*');
 				j++;
-		
+
 			}
-			
+
 			_delay_ms(500);
-			
+
 			if (!strcmp(password, pass[idno]))
 				return 1;
-				
+
 			lcd_cmd(0x01);
 			lcd_loc(1, 1);
 			strcpy (display, "Invalid pass:");
 			lcd_write_string(display);
 			lcd_loc(1, 2);
-			
-				
+
+
 		try++;
 	}
-	
+
 	lcd_cmd(0x01);
 	lcd_loc(1, 1);
-	
+
 	return 0;
 }
 
+void card_insertion ()
+{
+	unsigned char i=0;
+	lcd_cmd(0x01);
+	lcd_loc(1, 1);
+	strcpy(display, "Insert your card");
+	lcd_write_string(display);
 
+	while (i != 12)
+	{
+		while ((UCSRA) & (1<<RXC))
+		{
+			uart_read[i] = UDR;
+			_delay_ms(1);
+			i++;
+
+			if (i==12)
+			{
+				uart_read[i]=0;
+				break;
+			}
+		}
+
+	}
+
+	lcd_loc(1, 2);
+	lcd_write_string(uart_read);
+	_delay_ms(1000);
+	lcd_cmd(0x01);
+	lcd_loc(1, 1);
+}
